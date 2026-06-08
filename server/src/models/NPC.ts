@@ -1,42 +1,58 @@
-import { RequireOnlyOptional } from "../types";
+import { Override, RequireOnlyOptional } from "../types";
+
+export enum EffectType {
+  AddItem = "ADD_ITEM",
+  RemoveItem = "REMOVE_ITEM",
+  DiscoverLocation = "DISCOVER_LOCATION",
+  Teleport = "TELEPORT",
+  SetFlag = "SET_FLAG",
+  TriggerEncounter = "TRIGGER_ENCOUNTER"
+}
+
+interface EffectPayloads {
+  [EffectType.AddItem]: { itemId: string; count?: number };
+  [EffectType.RemoveItem]: { itemId: string; count?: number };
+  [EffectType.DiscoverLocation]: { locationId: string; };
+  [EffectType.Teleport]: { locationId: string; subNodeId?: string; };
+  [EffectType.SetFlag]: { flagKey: string; value: boolean | string | number; };
+  [EffectType.TriggerEncounter]: { monsterId: string; };
+}
+
+type Effect = {
+  [K in EffectType]: { type: K } & EffectPayloads[K]
+}[EffectType];
 
 export interface DialogueChoice {
   text: string;
   nextNodeId: string | null; // null signifies that this choice ends the conversation
-  effects?: Record<string, any>; // e.g., { give_item: "iron_key", reputation: +1 }
+  effects?: Effect[]
 }
 
-export interface DialogueNode {
+export interface DialogueNodeConfig {
   id: string;
   text: string;
   choices: DialogueChoice[];
-  onEnterEffects?: Record<string, any>;
+  onEnterEffects?: Effect[];
+}
+
+class DialogueNode {
+  #data: DialogueNodeConfig
 }
 
 interface NPCConfig {
   id: string;
   name: string;
   initialNodeId: string;
-  dialogueTree: Record<string, DialogueNode>; // Maps node IDs to their content
+  dialogueTree: DialogueNodeConfig[];
 }
 
-const DefaultNPCConfig: RequireOnlyOptional<NPCConfig> = {
-  initialNodeId: "start",
-  dialogueTree: {}
-};
-
-
 export class NPC {
-  #data: Required<NPCConfig>;
+  #data: Override<NPCConfig, {dialogueTree: Map<string, DialogueNode>}>;
 
-  constructor(config: NPCConfig) {
-    // Deep clone the incoming dialogue tree to protect the core configuration from leaks
-    const clonedTree = JSON.parse(JSON.stringify(config.dialogueTree || {}));
-    
+  constructor({dialogueTree, ...config}: NPCConfig) {
     this.#data = { 
-      ...DefaultNPCConfig, 
       ...config, 
-      dialogueTree: clonedTree 
+      dialogueTree: new Map(dialogueTree.map(dialogueNodeConfig => [dialogueNodeConfig.id, new DialogueNode(dialogueNodeConfig)]))
     };
   }
 
@@ -52,18 +68,37 @@ export class NPC {
     return this.#data.initialNodeId;
   }
 
-  /**
-   * Safely fetches a specific dialogue node out of the tree.
-   * Returns a defensive copy so external layers cannot modify the tree at runtime.
-   */
-  getDialogueNode(nodeId: string): DialogueNode | undefined {
-    const node = this.#data.dialogueTree[nodeId];
-    if (!node) return undefined;
+  get dialogueTree() {
+    return {...this.#data.dialogueTree};
+  }
+}
 
-    return {
-      id: node.id,
-      text: node.text,
-      choices: node.choices.map(choice => ({ ...choice, effects: choice.effects ? { ...choice.effects } : undefined }))
-    };
+
+
+const locations: Map<string, Location> = new Map();
+
+export function getLocation(id: string) {
+  return locations.get(id);
+}
+
+export function getLocationsForRegion(regionId: string) {
+  return Array.from(locations.values()).filter(poi => poi.regionId === regionId);
+}
+
+export function getLocations(): Location[] {
+  return Array.from(locations.values());
+}
+
+let currentLocationId: string | null = null;
+
+export function getCurrentLocation() {
+  if (!currentLocationId) return null;
+  return getLocation(currentLocationId!);
+}
+
+export function setCurrentLocation(locationId: string | null) {
+  if(currentLocationId !== locationId && (locationId === null || getLocation(locationId))) {
+    currentLocationId = locationId;
+    EventBus.fireEvent(EventType.LocationChanged, {locationId: locationId});
   }
 }

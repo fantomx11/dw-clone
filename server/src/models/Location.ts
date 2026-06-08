@@ -1,3 +1,4 @@
+import { EventBus, EventType } from "../core/EventBus";
 import { Override } from "../types";
 import { LocationNode, LocationNodeConfig } from "./LocationNode";
 
@@ -123,7 +124,7 @@ export function getCurrentLocation() {
 }
 
 export function setCurrentLocation(locationId: string | null) {
-  if(currentLocationId !== locationId && locationId === null || getLocation(locationId)) {
+  if(currentLocationId !== locationId && (locationId === null || getLocation(locationId))) {
     currentLocationId = locationId;
     EventBus.fireEvent(EventType.LocationChanged, {locationId: locationId});
   }
