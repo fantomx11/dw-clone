@@ -1,6 +1,6 @@
-import { Override, RequireOnlyOptional } from "../types";
-import { getLocation, getLocations } from "./Location";
-import { getRegion } from "./Region";
+import { RequireOnlyOptional } from "../types";
+import { getLocation, getLocations, Location, LocationConfigSerialized } from "./Location";
+import { getRegion, getRegions, Region, RegionConfigSerialized } from "./Region";
 
 export interface GameStateConfig {
   currentRegionId: string;
@@ -12,6 +12,11 @@ export interface GameStateConfig {
   flags?: Record<string, boolean>;
 }
 
+type GameStateConfigSerialized = GameStateConfig & {
+  regions: RegionConfigSerialized[];
+  locations: LocationConfigSerialized[];
+};
+
 const DefaultGameStateConfig: RequireOnlyOptional<GameStateConfig> = {
   currentLocationId: null,
   currentSubNodeId: null,
@@ -22,19 +27,22 @@ const DefaultGameStateConfig: RequireOnlyOptional<GameStateConfig> = {
 export class GameState {
   #data: GameStateConfig;
 
-  constructor({ ...config }: GameStateConfig) {
+  constructor({regions, locations, ...config }: GameStateConfigSerialized) {
     this.#data = {
       ...DefaultGameStateConfig,
       ...config
     };
+
+    regions.forEach(region => Region.fromConfig(region));
+    locations.forEach(location => Location.fromConfig(location));
   }
 
-  get currentLocationId(): string {
-    return this.#data.currentLocationId;
+  get currentLocationId(): string | null {
+    return this.#data.currentLocationId ?? null;
   }
 
   get inventory(): string[] {
-    return [...this.#data.inventory];
+    return [...this.#data.inventory ?? []];
   }
 
   get flags(): Record<string, boolean> {
@@ -61,13 +69,14 @@ export class GameState {
     return getLocation(locationId)?.isDiscovered || false
   }
 
-  toJSON() {
-    const { discoveredNodes, inventory, ...rest } = this.#data;
+  toJSON(): GameStateConfigSerialized {
+    const { inventory, ...rest } = this.#data;
 
     return {
       ...rest,
-      inventory: inventory.length > 0 ? inventory : undefined,
-      discoveredNodes: Array.from(discoveredNodes)
+      inventory: inventory && inventory.length > 0 ? inventory : undefined,
+      regions: Array.from(getRegions()).map(region => region.toJSON()),
+      locations: Array.from(getLocations()).map(location => location.toJSON())
     };
   }
 }

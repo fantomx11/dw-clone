@@ -46,6 +46,10 @@ export type ExplorationResult = LocationRevealResult | EncounterResult | NoEvent
 export class Region {
   #data: RegionConfig;
 
+  static fromConfig(config: RegionConfigSerialized): void {
+    new Region(config);
+  }
+
   constructor(config: RegionConfig) {
     this.#data = {...DefaultLocationConfig, ...config};
     regions.set(config.id, this);
@@ -91,6 +95,8 @@ export class Region {
     return {...this.#data, explorationRates: {...this.#data.explorationRates}};
   }
 }
+
+export type RegionConfigSerialized = RegionConfig;
 
 const regions: Map<string, Region> = new Map();
 

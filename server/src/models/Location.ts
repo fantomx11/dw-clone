@@ -18,14 +18,12 @@ export interface LocationConfig {
 export abstract class Location {
   #data: LocationConfig;
 
-  static fromConfig(config: LocationConfig): Location {
+  static fromConfig(config: LocationConfigSerialized): void {
     switch (config.type) {
-      case LocationType.Menu:
-        return new MenuLocation(config as MenuLocationConfig);
-      case LocationType.Node:
-        return new NodeLocation(config as NodeLocationConfig);
+      case LocationType.Menu: new MenuLocation(config); break;
+      case LocationType.Node: new NodeLocation(config); break;
       default:
-        throw new Error(`Unknown location type: ${config.type}`);
+        throw new Error(`Unknown location type.`);
     }
   }
 
@@ -45,9 +43,7 @@ export abstract class Location {
     this.#data.isDiscovered = true;
   }
 
-  toJSON(): LocationConfig {
-    return {...this.#data};
-  }
+  abstract toJSON(): LocationConfigSerialized;
 }
 
 export interface MenuLocationConfig extends LocationConfig {
@@ -83,7 +79,7 @@ export interface NodeLocationConfig extends LocationConfig {
 export class NodeLocation extends Location {
   #data: Override<NodeLocationConfig, { subNodes: Map<string, LocationNode> }>;
 
-  constructor({subNodes, ...config}: NodeLocationConfig) {
+  constructor({ subNodes, ...config }: NodeLocationConfig) {
     super(config);
 
     this.#data = {
@@ -100,8 +96,10 @@ export class NodeLocation extends Location {
       ...this.#data,
       subNodes: Object.fromEntries(Array.from(this.#data.subNodes.entries()).map(([id, node]) => [id, node.toJSON()]))
     };
-  } 
+  }
 }
+
+export type LocationConfigSerialized = MenuLocationConfig | NodeLocationConfig;
 
 const locations: Map<string, Location> = new Map();
 
@@ -115,4 +113,18 @@ export function getLocationsForRegion(regionId: string) {
 
 export function getLocations(): Location[] {
   return Array.from(locations.values());
+}
+
+let currentLocationId: string | null = null;
+
+export function getCurrentLocation() {
+  if (!currentLocationId) return null;
+  return getLocation(currentLocationId!);
+}
+
+export function setCurrentLocation(locationId: string | null) {
+  if(currentLocationId !== locationId && locationId === null || getLocation(locationId)) {
+    currentLocationId = locationId;
+    EventBus.fireEvent(EventType.LocationChanged, {locationId: locationId});
+  }
 }
