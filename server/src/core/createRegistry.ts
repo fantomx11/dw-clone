@@ -1,5 +1,6 @@
 interface Identifiable {
   id: string;
+  toJSON(): any;
 }
 
 /**
@@ -14,6 +15,6 @@ export function createRegistry<T extends Identifiable>() {
     get: (id: string): T | undefined => storage.get(id),
     register: (item: T): void => { storage.set(item.id, item); },
     getAll: (): T[] => Array.from(storage.values()),
-    clear: (): void => storage.clear()
+    clear: (): void => storage.clear(),
   };
 }

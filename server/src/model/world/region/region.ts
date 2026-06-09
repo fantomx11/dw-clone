@@ -1,6 +1,7 @@
-import { createRegistry } from "../core/Registry";
-import { RequireOnlyOptional } from "../types";
-import { getLocationsForRegion } from "./Location";
+import { RequireOnlyOptional } from "@/types";
+import { Registry as LocationRegistry } from "../location";
+import { Registry } from "./registry";
+import { ExplorationResult, ExplorationResultType } from "../exploration";
 
 export interface RegionConfig {
   id: string;
@@ -18,32 +19,6 @@ const DefaultLocationConfig: RequireOnlyOptional<RegionConfig> = {
   isDiscovered: false
 };
 
-export enum ExplorationResultType {
-  LocationRevealed,
-  Encounter,
-  NoEvent
-}
-
-interface BaseExplorationResult {
-  type: ExplorationResultType;
-}
-
-interface LocationRevealResult extends BaseExplorationResult {
-  type: ExplorationResultType.LocationRevealed;
-  locationId: string;
-}
-
-interface EncounterResult extends BaseExplorationResult {
-  type: ExplorationResultType.Encounter;
-  monsterId: string;
-}
-
-interface NoEventResult extends BaseExplorationResult {
-  type: ExplorationResultType.NoEvent;
-}
-
-export type ExplorationResult = LocationRevealResult | EncounterResult | NoEventResult;
-
 export class Region {
   #data: RegionConfig;
 
@@ -53,13 +28,13 @@ export class Region {
 
   constructor(config: RegionConfig) {
     this.#data = {...DefaultLocationConfig, ...config};
-    registerRegion(this);
+    Registry.register(this);
   }
 
   get id() { return this.#data.id; }
   get name() { return this.#data.name; }
   get explorationRates() { return {...this.#data.explorationRates}; }
-  get locations() { return getLocationsForRegion(this.id); }
+  get locations() { return LocationRegistry.getAllForRegion(this.id); }
   get isDiscovered() { return this.#data.isDiscovered; }
 
   explore(): ExplorationResult {
@@ -98,17 +73,3 @@ export class Region {
 }
 
 export type RegionConfigSerialized = RegionConfig;
-
-const {
-  clear: clearRegions,
-  get: getRegion,
-  getAll: getRegions,
-  register: registerRegion
-} = createRegistry<Region>();
-
-export {
-  clearRegions,
-  getRegion,
-  getRegions
-};
-

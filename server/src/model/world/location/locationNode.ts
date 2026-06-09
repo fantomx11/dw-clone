@@ -1,4 +1,4 @@
-import { RequireOnlyOptional } from "../types";
+import { RequireOnlyOptional } from "@/types";
 
 export interface LocationNodeConfig {
   id: string;

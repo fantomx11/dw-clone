@@ -1,0 +1,162 @@
+{
+  "currentRegionId": "tantegel_surroundings",
+  "currentLocationId": "tantegel_castle",
+  "currentSubNodeId": "throne_room",
+  "inventory": [],
+  "flags": {
+    "talked_to_king": false
+  },
+  "regions": [
+    {
+      "id": "tantegel_surroundings",
+      "name": "Tantegel Surroundings",
+      "monsterIds": [
+        "slime",
+        "red_slime",
+        "drakee"
+      ],
+      "explorationRates": {
+        "locationRevealChance": 0.35,
+        "encounterChance": 0.45,
+        "noEventChance": 0.20
+      }
+    }
+  ],
+  "locations": [
+    {
+      "regionId": "tantegel_surroundings",
+      "id": "tantegel_castle",
+      "name": "Tantegel Castle",
+      "type": "node",
+      "isDiscovered": true,
+      "backgroundImage": "assets/bg/tantegel_exterior.png",
+      "startingSubNodeId": "throne_room",
+      "subNodes": {
+        "throne_room": {
+          "id": "throne_room",
+          "name": "King Lorik's Throne Room",
+          "type": "indoor_throne",
+          "backgroundImage": "assets/bg/throne_room.png",
+          "connectedIds": [
+            "castle_courtyard"
+          ],
+          "npcs": [
+            "king_lorik"
+          ],
+          "interactables": [
+            "locked_chest_01"
+          ]
+        },
+        "castle_courtyard": {
+          "id": "castle_courtyard",
+          "name": "Castle Courtyard",
+          "type": "outdoor_castle",
+          "backgroundImage": "assets/bg/courtyard.png",
+          "connectedIds": [
+            "throne_room"
+          ],
+          "npcs": [
+            "castle_guard_01"
+          ]
+        }
+      }
+    },
+    {
+      "regionId": "tantegel_surroundings",
+      "id": "brecconary_town",
+      "name": "Town of Brecconary",
+      "type": "menu",
+      "isDiscovered": false,
+      "backgroundImage": "assets/bg/brecconary_town.png",
+      "npcs": [
+        "town_elder_npc",
+        "innkeeper_npc"
+      ]
+    }
+  ],
+  "npcs": [
+    {
+      "id": "king_lorik",
+      "name": "King Lorik",
+      "initialNodeId": [
+        {
+          "condition": {"not": { "flag": "talked_to_king" }},
+          "nodeId": "king_greeting"
+        },
+        {
+          "condition": { "flag": "princess_rescued" },
+          "nodeId": "king_reward"
+        },
+        {
+          "nodeId": "king_waiting"
+        }
+      ],
+      "dialogueTree": [
+        {
+          "id": "king_greeting",
+          "text": "Descendant of Erdrick! The vile Dragonlord has stolen the Ball of Light and seized Princess Gwaelin. Will you take up your ancestral sword to rescue them?",
+          "choices": [
+            {
+              "text": "Yes, Your Majesty.",
+              "nextNodeId": "king_accept",
+              "effects": [
+                {
+                  "type": "SET_FLAG",
+                  "flagKey": "talked_to_king",
+                  "value": true
+                },
+                {
+                  "type": "ADD_ITEM",
+                  "itemId": "copper_sword",
+                  "count": 1
+                }
+              ]
+            },
+            {
+              "text": "No, it is too dangerous.",
+              "nextNodeId": "king_refuse"
+            }
+          ]
+        },
+        {
+          "id": "king_accept",
+          "text": "Excellent! Take this Copper Sword. Leave the gates and explore the surrounding wild to discover Brecconary, where you may purchase supplies.",
+        },
+        {
+          "id": "king_refuse",
+          "text": "But Alefgard has no other champions! Please, reconsider your fate.",
+          "choices": [
+            {
+              "text": "Reconsider",
+              "nextNodeId": "king_greeting"
+            }
+          ]
+        },
+        {
+          "id": "king_waiting",
+          "text": "Ah, you have returned! Have you brought back my daughter?",
+          "choices": [
+            {
+              "text": "Not yet...",
+              "nextNodeId": "king_disappointed"
+            }
+          ]
+        },
+        {
+          "id": "king_disappointed",
+          "text": "That sucks."
+        },
+        {
+          "id": "king_reward",
+          "text": "Oh, my beloved Gwaelin! You truly are the descendant of Erdrick!",
+          "choices": [
+            {
+              "text": "Accept your reward",
+              "nextNodeId": "claim_ball_of_light"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
