@@ -59,6 +59,17 @@ class DialogueNode {
   get text(): string {
     return this.#data.text;
   }
+
+  toJSON(): DialogueNodeConfig {
+    return {
+      ...this.#data,
+      choices: this.#data.choices.map(choice => ({
+        ...choice,
+        nextNodeId: choice.nextNodeId === null ? null : choice.nextNodeId
+      })),
+      onEnterEffects: this.#data.onEnterEffects?.map(onEnterEffect => ({ ...onEnterEffect }))
+    };
+  }
 }
 
 interface NPCConfig {
@@ -70,6 +81,10 @@ interface NPCConfig {
 
 export class NPC {
   #data: Override<NPCConfig, { dialogueTree: Map<string, DialogueNode> }>;
+
+  static fromConfig(config: NPCSerialized): void {
+    new NPC(config);
+  }
 
   constructor({ dialogueTree, ...config }: NPCConfig) {
     this.#data = {
@@ -92,7 +107,14 @@ export class NPC {
   }
 
   get dialogueTree() {
-    return { ...this.#data.dialogueTree };
+    return new Map(this.#data.dialogueTree);
+  }
+
+  toJSON(): NPCSerialized {
+    return {
+      ...this.#data,
+      dialogueTree: Array.from(this.#data.dialogueTree.values()).map(dialogueNode => dialogueNode.toJSON())
+    };
   }
 }
 
@@ -108,3 +130,5 @@ export {
   getNPC,
   getNPCs
 }
+
+export type NPCSerialized = NPCConfig;
