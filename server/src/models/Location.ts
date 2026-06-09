@@ -1,4 +1,5 @@
 import { EventBus, EventType } from "../core/EventBus";
+import { createRegistry } from "../core/Registry";
 import { Override } from "../types";
 import { LocationNode, LocationNodeConfig } from "./LocationNode";
 
@@ -30,7 +31,7 @@ export abstract class Location {
 
   constructor(config: LocationConfig) {
     this.#data = config;
-    locations.set(config.id, this);
+    registerLocation(this);
   }
 
   get isDiscovered() { return this.#data.isDiscovered; }
@@ -102,18 +103,16 @@ export class NodeLocation extends Location {
 
 export type LocationConfigSerialized = MenuLocationConfig | NodeLocationConfig;
 
-const locations: Map<string, Location> = new Map();
+const {
+  clear: clearLocations,
+  get: getLocation,
+  getAll: getLocations,
+  register: registerLocation
+} = createRegistry<Location>();
 
-export function getLocation(id: string) {
-  return locations.get(id);
-}
 
 export function getLocationsForRegion(regionId: string) {
-  return Array.from(locations.values()).filter(poi => poi.regionId === regionId);
-}
-
-export function getLocations(): Location[] {
-  return Array.from(locations.values());
+  return Array.from(getLocations()).filter(poi => poi.regionId === regionId);
 }
 
 let currentLocationId: string | null = null;
@@ -128,4 +127,10 @@ export function setCurrentLocation(locationId: string | null) {
     currentLocationId = locationId;
     EventBus.fireEvent(EventType.LocationChanged, {locationId: locationId});
   }
+}
+
+export {
+  clearLocations,
+  getLocation,
+  getLocations
 }

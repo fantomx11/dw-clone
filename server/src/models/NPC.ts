@@ -1,3 +1,5 @@
+import { EventBus, EventType } from "../core/EventBus";
+import { createRegistry } from "../core/Registry";
 import { Override, RequireOnlyOptional } from "../types";
 
 export enum EffectType {
@@ -36,7 +38,27 @@ export interface DialogueNodeConfig {
 }
 
 class DialogueNode {
-  #data: DialogueNodeConfig
+  #data: DialogueNodeConfig;
+
+  constructor({ choices, onEnterEffects, ...config }: DialogueNodeConfig) {
+    this.#data = {
+      ...config,
+      choices: choices.map(({ effects, nextNodeId, ...choice }) => ({
+        ...choice,
+        nextNodeId: nextNodeId || null,
+        effects: effects?.map(effect => ({ ...effect }))
+      })),
+      onEnterEffects: onEnterEffects?.map(onEnterEffect => ({ ...onEnterEffect }))
+    };
+  }
+
+  get id(): string {
+    return this.#data.id;
+  }
+
+  get text(): string {
+    return this.#data.text;
+  }
 }
 
 interface NPCConfig {
@@ -47,13 +69,14 @@ interface NPCConfig {
 }
 
 export class NPC {
-  #data: Override<NPCConfig, {dialogueTree: Map<string, DialogueNode>}>;
+  #data: Override<NPCConfig, { dialogueTree: Map<string, DialogueNode> }>;
 
-  constructor({dialogueTree, ...config}: NPCConfig) {
-    this.#data = { 
-      ...config, 
+  constructor({ dialogueTree, ...config }: NPCConfig) {
+    this.#data = {
+      ...config,
       dialogueTree: new Map(dialogueTree.map(dialogueNodeConfig => [dialogueNodeConfig.id, new DialogueNode(dialogueNodeConfig)]))
     };
+    registerNPC(this);
   }
 
   get id(): string {
@@ -69,36 +92,19 @@ export class NPC {
   }
 
   get dialogueTree() {
-    return {...this.#data.dialogueTree};
+    return { ...this.#data.dialogueTree };
   }
 }
 
+const {
+  clear: clearNPCs,
+  get: getNPC,
+  getAll: getNPCs,
+  register: registerNPC
+} = createRegistry<NPC>();
 
-
-const locations: Map<string, Location> = new Map();
-
-export function getLocation(id: string) {
-  return locations.get(id);
-}
-
-export function getLocationsForRegion(regionId: string) {
-  return Array.from(locations.values()).filter(poi => poi.regionId === regionId);
-}
-
-export function getLocations(): Location[] {
-  return Array.from(locations.values());
-}
-
-let currentLocationId: string | null = null;
-
-export function getCurrentLocation() {
-  if (!currentLocationId) return null;
-  return getLocation(currentLocationId!);
-}
-
-export function setCurrentLocation(locationId: string | null) {
-  if(currentLocationId !== locationId && (locationId === null || getLocation(locationId))) {
-    currentLocationId = locationId;
-    EventBus.fireEvent(EventType.LocationChanged, {locationId: locationId});
-  }
+export {
+  clearNPCs,
+  getNPC,
+  getNPCs
 }

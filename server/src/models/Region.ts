@@ -1,3 +1,4 @@
+import { createRegistry } from "../core/Registry";
 import { RequireOnlyOptional } from "../types";
 import { getLocationsForRegion } from "./Location";
 
@@ -52,7 +53,7 @@ export class Region {
 
   constructor(config: RegionConfig) {
     this.#data = {...DefaultLocationConfig, ...config};
-    regions.set(config.id, this);
+    registerRegion(this);
   }
 
   get id() { return this.#data.id; }
@@ -98,12 +99,16 @@ export class Region {
 
 export type RegionConfigSerialized = RegionConfig;
 
-const regions: Map<string, Region> = new Map();
+const {
+  clear: clearRegions,
+  get: getRegion,
+  getAll: getRegions,
+  register: registerRegion
+} = createRegistry<Region>();
 
-export function getRegion(id: string) {
-  return regions.get(id);
-}
+export {
+  clearRegions,
+  getRegion,
+  getRegions
+};
 
-export function getRegions(): Region[] {
-  return Array.from(regions.values());
-}
