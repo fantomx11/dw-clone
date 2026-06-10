@@ -1,0 +1,110 @@
+SET_CURRENT_REGION("tantegel_surroundings")
+SET_CURRENT_LOCATION("tantegel_castle")
+SET_CURRENT_SUBNODE("throne_room")
+
+REGION tantegel_surroundings
+  NAME "Tantegel Surroundings"
+  MONSTERS
+    slime
+    red_slime
+    drakee
+  END MONSTERS
+  REVEAL_CHANCE 0.35
+  ENCOUNTER_CHANCE 0.45
+  NO_EVENT_CHANCE 0.20
+END REGION
+
+LOCATION tantegel_castle
+  REGION tantegel_surroundings
+  NAME "Tantegel Castle"
+  DISCOVERED TRUE
+  BACKGROUND "assets/bg/tantegel_exterior.png"
+  STARTING_SUBNODE outdoor_castle
+
+  SUBNODE throne_room
+    NAME "King Lorik's Throne Room"
+    BACKGROUND "assets/bg/throne_room.png"
+    CONNECTIONS 
+      castle_courtyard
+    END CONNECTIONS
+    NPCS
+      king_lorik
+    END NPCS
+  END SUBNODE
+
+  SUBNODE castle_courtyard
+    NAME "Castle Courtyard"
+    BACKGROUND "assets/bg/courtyard.png"
+    CONNECTIONS
+      throne_room
+    END CONNECTIONS
+    NPCS
+      castle_guard_01
+    END NPCS
+  END SUBNODE
+END LOCATION
+
+LOCATION brecconary_town
+  REGION tantegel_surroundings
+  NAME "Town of Brecconary"
+  DISCOVERED FALSE
+  BACKGROUND "assets/bg/brecconary_town.png"
+  NPCS
+    town_elder_npc
+    innkeeper_npc
+  END NPCS
+END LOCATION
+
+NPC king_lorik
+  NAME "King Lorik"
+  IMAGE "assets/npc/king_lorik.png"
+  
+  ROUTE IF NOT GET_FLAG("talked_to_king") THEN GOTO king_greeting
+  ROUTE IF GET_FLAG("princess_rescued") THEN GOTO king_reward
+  ROUTE DEFAULT GOTO king_waiting
+END NPC
+
+DIALOGUE_TREE king_lorik
+
+  NODE king_greeting
+    TEXT "Descendant of Erdrick! The vile Dragonlord has stolen the Ball of Light and seized Princess Gwaelin. Will you take up your ancestral sword to rescue them?"
+    
+    ON_EXECUTE BLOCK
+      SET_FLAG("talked_to_king", TRUE)
+    END BLOCK
+
+    CHOICE "Yes, Your Majesty." THEN GOTO king_accept
+    CHOICE "No, it is too dangerous." THEN GOTO king_refuse
+  END NODE
+
+  NODE king_accept
+    TEXT "Excellent! Take this Copper Sword. Leave the gates and explore the surrounding wild to discover Brecconary, where you may purchase supplies."
+  
+    ON_EXECUTE BLOCK
+      ADD_ITEM("copper_sword")
+    END BLOCK
+  END NODE
+
+  NODE king_refuse
+    TEXT "But Alefgard has no other champions! Please, reconsider your fate."
+    
+    CHOICE "Reconsider" THEN GOTO king_greeting
+  END NODE
+
+  NODE king_waiting
+    TEXT "Ah, you have returned! Have you brought back my daughter?"
+    
+    CHOICE "Not yet..." THEN GOTO king_disappointed
+  END NODE
+
+  NODE king_disappointed
+    TEXT "That sucks."
+  END NODE
+
+  NODE king_reward
+    TEXT "Oh, my beloved Gwaelin! You truly are the descendant of Erdrick!"
+    
+    CHOICE "Accept your reward" THEN GOTO claim_ball_of_light
+  END NODE
+
+END DIALOGUE_TREE

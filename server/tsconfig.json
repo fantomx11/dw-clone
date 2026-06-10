@@ -2,9 +2,8 @@
   "compilerOptions": {
     "target": "ES2022",
     "module": "NodeNext",
-    "baseUrl": ".",                 // Tells TS to look relative to this folder
     "paths": {
-      "@/*": ["src/*"]             // Maps any "@/" import straight to your "src/" folder
+      "@/*": ["./src/*"]             // Maps any "@/" import straight to your "src/" folder
     }
   }
 }
