@@ -1,4 +1,4 @@
-import { GameState } from "../state/gameState";
+import { GameState } from "../../subsystems/state/gameState";
 
 export type ConditionConfig = {
   [operator: string]: any;
