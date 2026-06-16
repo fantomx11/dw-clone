@@ -1,11 +1,13 @@
 // 1. Define the semantic names of events running through your system
 export enum EventType {
-  LocationChanged = "LocationChanged"
+  LocationChanged = "LocationChanged",
+  DialogueUpdated = "DialogueUpdated"
 }
 
 // 2. Map each event explicitly to the exact data contract it transmits
 export interface EventPayloads {
   [EventType.LocationChanged]: { locationId: string | null };
+  [EventType.DialogueUpdated]: { npcId: string | null, nodeId: string | null };
 }
 
 type EventCallback<K extends EventType> = (payload: EventPayloads[K]) => void;

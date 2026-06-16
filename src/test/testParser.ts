@@ -1,70 +1,40 @@
-import { tokenize } from '@/core/compiler/tokenizer';
-import { parseTokens } from '@/core/compiler/parser';
+import { tokenize } from '@/subsystems/compiler/tokenizer';
+import { parseTokens } from '@/subsystems/compiler/parser';
 
-const sampleScript = `
-SET_CURRENT_REGION("tantegel_surroundings")
-SET_CURRENT_LOCATION("tantegel_castle")
-SET_CURRENT_SUBNODE("throne_room")
+import fs from 'fs/promises';
+import path from 'path';
 
-START REGION tantegel_surroundings
-  NAME "Tantegel Surroundings"
-  START MONSTERS
-    slime
-    red_slime
-    drakee
-  END MONSTERS
-  REVEAL_CHANCE 0.35
-  ENCOUNTER_CHANCE 0.45
-  NO_EVENT_CHANCE 0.20
-END REGION
+async function loadWorldFile(filename: string = 'alefgard.dw'): Promise<string> {
+  try {
+    // Safely resolve the path from the root data directory
+    const filePath = path.join(process.cwd(), 'data', filename);
 
-START LOCATION tantegel_castle
-  REGION tantegel_surroundings
-  NAME "Tantegel Castle"
-  DISCOVERED TRUE
-  BACKGROUND "assets/bg/tantegel_exterior.png"
-  STARTING_SUBNODE outdoor_castle
+    // Read the file. Specifying 'utf8' returns a string instead of a raw binary Buffer
+    const fileContent = await fs.readFile(filePath, 'utf8');
 
-  START SUBNODE throne_room
-    NAME "King Lorik's Throne Room"
-    BACKGROUND "assets/bg/throne_room.png"
-    START CONNECTIONS 
-      castle_courtyard
-    END CONNECTIONS
-    START NPCS
-      king_lorik
-    END NPCS
-  END SUBNODE
-END LOCATION
+    return fileContent;
+  } catch (error: any) {
+    console.error(`Error reading file ${filename}:`, error.message);
+    throw error;
+  }
+}
 
-START NPC king_lorik
-  NAME "King Lorik"
-  IMAGE "assets/npc/king_lorik.png"
-END NPC
+// Example usage:
+async function init() {
+  const sampleScript = await loadWorldFile('alefgard.dw');
+  console.log("Loaded script content successfully!");
+  runParserTest(sampleScript);
 
-DIALOGUE_TREE king_lorik
-  ROUTE IF NOT GET_FLAG("talked_to_king") THEN GOTO king_greeting
-  ROUTE IF GET_FLAG("princess_rescued") THEN GOTO king_reward
-  ROUTE DEFAULT GOTO king_waiting
+  // You can now pass rawScript straight into your transpile(rawScript) function
+}
 
-  NODE king_greeting
-    TEXT "Descendant of Erdrick! The vile Dragonlord has stolen the Ball of Light and seized Princess Gwaelin. Will you take up your ancestral sword to rescue them?"
-    
-    ON_EXECUTE BLOCK
-      SET_FLAG("talked_to_king", TRUE)
-    END BLOCK
+init();
 
-    CHOICE "Yes, Your Majesty." THEN GOTO king_accept
-    CHOICE "No, it is too dangerous." THEN GOTO king_refuse
-  END NODE
-END DIALOGUE_TREE
-`;
-
-function runParserTest() {
+function runParserTest(sampleScript: string) {
   console.log("=========================================");
   console.log("STAGE 1: Running Tokenizer...");
   console.log("=========================================");
-  
+
   let tokens;
   try {
     tokens = tokenize(sampleScript);
@@ -92,5 +62,3 @@ function runParserTest() {
     console.log(tokens.slice(0, 3)); // Shows exactly what it got stuck on
   }
 }
-
-runParserTest();

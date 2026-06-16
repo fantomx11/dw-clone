@@ -2,9 +2,9 @@ SET_CURRENT_REGION("tantegel_surroundings")
 SET_CURRENT_LOCATION("tantegel_castle")
 SET_CURRENT_SUBNODE("throne_room")
 
-REGION tantegel_surroundings
+START REGION tantegel_surroundings
   NAME "Tantegel Surroundings"
-  MONSTERS
+  START MONSTERS
     slime
     red_slime
     drakee
@@ -14,97 +14,96 @@ REGION tantegel_surroundings
   NO_EVENT_CHANCE 0.20
 END REGION
 
-LOCATION tantegel_castle
+START LOCATION tantegel_castle
   REGION tantegel_surroundings
   NAME "Tantegel Castle"
   DISCOVERED TRUE
   BACKGROUND "assets/bg/tantegel_exterior.png"
   STARTING_SUBNODE outdoor_castle
 
-  SUBNODE throne_room
+  START SUBNODE throne_room
     NAME "King Lorik's Throne Room"
     BACKGROUND "assets/bg/throne_room.png"
-    CONNECTIONS 
+    START CONNECTIONS 
       castle_courtyard
     END CONNECTIONS
-    NPCS
+    START NPCS
       king_lorik
     END NPCS
   END SUBNODE
 
-  SUBNODE castle_courtyard
+  START SUBNODE castle_courtyard
     NAME "Castle Courtyard"
     BACKGROUND "assets/bg/courtyard.png"
-    CONNECTIONS
+    START CONNECTIONS
       throne_room
     END CONNECTIONS
-    NPCS
+    START NPCS
       castle_guard_01
     END NPCS
   END SUBNODE
 END LOCATION
 
-LOCATION brecconary_town
+START LOCATION brecconary_town
   REGION tantegel_surroundings
   NAME "Town of Brecconary"
   DISCOVERED FALSE
   BACKGROUND "assets/bg/brecconary_town.png"
-  NPCS
+  START NPCS
     town_elder_npc
     innkeeper_npc
   END NPCS
 END LOCATION
 
-NPC king_lorik
+START NPC king_lorik
   NAME "King Lorik"
   IMAGE "assets/npc/king_lorik.png"
+  DIALOGUE_TREE king_lorik
   
-  ROUTE IF NOT GET_FLAG("talked_to_king") THEN GOTO king_greeting
-  ROUTE IF GET_FLAG("princess_rescued") THEN GOTO king_reward
-  ROUTE DEFAULT GOTO king_waiting
+  ON ROUTE BLOCK
+    IF NOT GET_FLAG("talked_to_king") THEN RETURN king_greeting
+    IF GET_FLAG("princess_rescued") THEN RETURN king_reward
+    RETURN king_waiting
+  END BLOCK
 END NPC
 
-DIALOGUE_TREE king_lorik
+START DIALOGUE_TREE king_lorik
 
-  NODE king_greeting
+  START NODE king_greeting
     TEXT "Descendant of Erdrick! The vile Dragonlord has stolen the Ball of Light and seized Princess Gwaelin. Will you take up your ancestral sword to rescue them?"
     
-    ON_EXECUTE BLOCK
-      SET_FLAG("talked_to_king", TRUE)
-    END BLOCK
+    ON EXECUTE SET_FLAG("talked_to_king", TRUE)
 
-    CHOICE "Yes, Your Majesty." THEN GOTO king_accept
-    CHOICE "No, it is too dangerous." THEN GOTO king_refuse
+    CHOICE "Yes, Your Majesty." king_accept
+    CHOICE "No, it is too dangerous." king_refuse
   END NODE
 
-  NODE king_accept
+  START NODE king_accept
     TEXT "Excellent! Take this Copper Sword. Leave the gates and explore the surrounding wild to discover Brecconary, where you may purchase supplies."
   
-    ON_EXECUTE BLOCK
-      ADD_ITEM("copper_sword")
-    END BLOCK
+    ON EXECUTE ADD_ITEM("copper_sword")
   END NODE
 
-  NODE king_refuse
+  START NODE king_refuse
     TEXT "But Alefgard has no other champions! Please, reconsider your fate."
     
-    CHOICE "Reconsider" THEN GOTO king_greeting
+    CHOICE "Reconsider" king_greeting
   END NODE
 
-  NODE king_waiting
+  START NODE king_waiting
     TEXT "Ah, you have returned! Have you brought back my daughter?"
     
-    CHOICE "Not yet..." THEN GOTO king_disappointed
+    CHOICE "Not yet..." king_disappointed
   END NODE
 
-  NODE king_disappointed
+  START NODE king_disappointed
     TEXT "That sucks."
   END NODE
 
-  NODE king_reward
+  START NODE king_reward
     TEXT "Oh, my beloved Gwaelin! You truly are the descendant of Erdrick!"
     
-    CHOICE "Accept your reward" THEN GOTO claim_ball_of_light
+    CHOICE "Accept your reward" claim_ball_of_light
   END NODE
 
 END DIALOGUE_TREE

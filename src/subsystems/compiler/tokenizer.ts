@@ -53,10 +53,10 @@ const keywords = new Set([
   'NPC',
   'NPCS',
   'ON',
-  'ON_EXECUTE',
+  'EXECUTE',
   'REGION',
   'RETURN',
-  'ROUTE',
+  'ROUTER',
   'START',
   'SUBNODE',
   'THEN',
@@ -96,7 +96,7 @@ export const tokenize = (code: string) => {
       const normalizedValue = tokenValue.toUpperCase();
 
       if (keywords.has(normalizedValue)) {
-        tokenType = TokenType.KEYWORD;
+        tokenType = TokenType.WORD;
       } else if (allowedFunctions[normalizedValue] !== void 0) {
         tokenType = TokenType.FUNCTION;
       } else if (assignmentOperators.has(tokenValue)) {
@@ -118,7 +118,7 @@ export const tokenize = (code: string) => {
         tokenValue = Number(tokenValue);
         tokenType = TokenType.LITERAL;
       } else if (match[1]) {
-        tokenType = TokenType.IDENTIFIER;
+        tokenType = TokenType.WORD;
       }
 
       if (tokenType !== TokenType.UNKNOWN) {
