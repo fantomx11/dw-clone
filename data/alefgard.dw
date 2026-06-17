@@ -1,6 +1,8 @@
-SET_CURRENT_REGION("tantegel_surroundings")
-SET_CURRENT_LOCATION("tantegel_castle")
-SET_CURRENT_SUBNODE("throne_room")
+ON "start" START BLOCK
+  SET_CURRENT_REGION("tantegel_surroundings")
+  SET_CURRENT_LOCATION("tantegel_castle")
+  SET_CURRENT_SUBNODE("throne_room")
+END BLOCK
 
 START REGION tantegel_surroundings
   NAME "Tantegel Surroundings"
@@ -107,3 +109,4 @@ START DIALOGUE_TREE king_lorik
   END NODE
 
 END DIALOGUE_TREE
+

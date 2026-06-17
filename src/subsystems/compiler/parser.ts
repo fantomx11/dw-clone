@@ -97,12 +97,12 @@ export function parseOnStatement(parsingContext: ParsingContext): OnEventStateme
 
   const body = parseStatement(parsingContext);
 
-  if(typeof eventName !== 'string') throw new Error("Expected a string for event name");
+  if (typeof eventName !== 'string') throw new Error("Expected a string for event name");
 
   return { type: NodeType.OnEventStatement, eventName, body };
 }
 
-export function parseDefinitionStatement(parsingContext: ParsingContext): any {
+export function parseStartStatement(parsingContext: ParsingContext): any {
   const { tokens } = parsingContext;
 
   // 1. If this is the outer block call, it might start with START (e.g., START REGION)
@@ -118,64 +118,83 @@ export function parseDefinitionStatement(parsingContext: ParsingContext): any {
   const idToken = tokens.shift()!;
   const id = idToken.type === TokenType.LITERAL ? idToken.value : idToken.normalizedValue;
 
-  const properties: Record<string, any> = {};
+  let returnValue: any = {};
 
-  // 4. Run the property harvest loop until hitting the outer block's 'END [defType]'
-  while (tokens.length > 0 && !(tokens[0].normalizedValue === 'END' && tokens[1]?.normalizedValue === defType)) {
-    const peek = tokens[0];
+  if (id === "BLOCK") {
+    console.log("parsing block");
+    returnValue = {
+      type: NodeType.BlockStatement,
+      statements: []
+    };
 
-    // STRUCTURE A: We found a 'START' keyword -> This is a multi-line array or sub-block!
-    if (peek && peek.normalizedValue === 'START') {
-      consume(tokens, TokenType.WORD, 'START');
+    while(tokens.length > 0 && !(tokens[0].normalizedValue === "END" && tokens[1]?.normalizedValue === defType)) {
+      returnValue.statements.push(parseStatement(parsingContext));
+    }
 
-      const innerKeyToken = tokens.shift()!;
-      const innerKey = innerKeyToken.normalizedValue;
 
-      // Lookahead check: Is this a nested sub-definition block (like START SUBNODE "throne_room")?
-      // If the token following the key is followed by an asset ID string/identifier instead of a value
-      // OR if the innerKey matches a known block type, we parse it recursively!
-      if (innerKey === 'SUBNODE' || innerKey === 'LOCATION' || innerKey === 'NPC') {
-        // Put the innerKey back so the recursive parseDefinition call can consume it cleanly
-        tokens.unshift(innerKeyToken);
+    console.log("Done parsing Block");
+  } else {
+    const properties: Record<string, any> = {};
 
-        if (!properties[snakeToCamelCase(innerKey)]) properties[snakeToCamelCase(innerKey)] = [];
-        properties[snakeToCamelCase(innerKey)].push(parseDefinitionStatement(parsingContext));
+    // 4. Run the property harvest loop until hitting the outer block's 'END [defType]'
+    while (tokens.length > 0 && !(tokens[0].normalizedValue === 'END' && tokens[1]?.normalizedValue === defType)) {
+      const peek = tokens[0];
+
+      // STRUCTURE A: We found a 'START' keyword -> This is a multi-line array or sub-block!
+      if (peek && peek.normalizedValue === 'START') {
+        consume(tokens, TokenType.WORD, 'START');
+
+        const innerKeyToken = tokens.shift()!;
+        const innerKey = innerKeyToken.normalizedValue;
+
+        // Lookahead check: Is this a nested sub-definition block (like START SUBNODE "throne_room")?
+        // If the token following the key is followed by an asset ID string/identifier instead of a value
+        // OR if the innerKey matches a known block type, we parse it recursively!
+        if (innerKey === 'SUBNODE' || innerKey === 'LOCATION' || innerKey === 'NPC') {
+          // Put the innerKey back so the recursive parseDefinition call can consume it cleanly
+          tokens.unshift(innerKeyToken);
+
+          if (!properties[snakeToCamelCase(innerKey)]) properties[snakeToCamelCase(innerKey)] = [];
+          properties[snakeToCamelCase(innerKey)].push(parseStartStatement(parsingContext));
+          continue;
+        }
+
+        // Otherwise, it's a primitive array (like START MONSTERS ... END MONSTERS)
+        const arrayItems: any[] = [];
+        while (tokens.length > 0 && !(tokens[0].normalizedValue === 'END' && tokens[1]?.normalizedValue === innerKey)) {
+          const itemToken = tokens.shift()!;
+          arrayItems.push(itemToken.type === TokenType.LITERAL ? itemToken.value : itemToken.value);
+        }
+
+        // Close out the array block boundaries
+        consume(tokens, TokenType.WORD, 'END');
+        consume(tokens, TokenType.WORD, innerKey);
+
+        properties[snakeToCamelCase(innerKey)] = arrayItems;
         continue;
       }
 
-      // Otherwise, it's a primitive array (like START MONSTERS ... END MONSTERS)
-      const arrayItems: any[] = [];
-      while (tokens.length > 0 && !(tokens[0].normalizedValue === 'END' && tokens[1]?.normalizedValue === innerKey)) {
-        const itemToken = tokens.shift()!;
-        arrayItems.push(itemToken.type === TokenType.LITERAL ? itemToken.value : itemToken.value);
-      }
+      // STRUCTURE B: Regular flat line attribute assignment (e.g., NAME "Tantegel Castle")
+      const keyToken = tokens.shift()!;
+      const key = keyToken.normalizedValue;
 
-      // Close out the array block boundaries
-      consume(tokens, TokenType.WORD, 'END');
-      consume(tokens, TokenType.WORD, innerKey);
-
-      properties[snakeToCamelCase(innerKey)] = arrayItems;
-      continue;
+      const valueToken = tokens.shift()!;
+      properties[snakeToCamelCase(key)] = valueToken.type === TokenType.LITERAL ? valueToken.value : valueToken.value;
     }
 
-    // STRUCTURE B: Regular flat line attribute assignment (e.g., NAME "Tantegel Castle")
-    const keyToken = tokens.shift()!;
-    const key = keyToken.normalizedValue;
-
-    const valueToken = tokens.shift()!;
-    properties[snakeToCamelCase(key)] = valueToken.type === TokenType.LITERAL ? valueToken.value : valueToken.value;
+    returnValue = {
+      type: NodeType.DefinitionStatement,
+      defType,
+      id,
+      properties
+    };
   }
 
   // 5. Clean up the trailing outer block boundary tokens
   consume(tokens, TokenType.WORD, 'END');
   consume(tokens, TokenType.WORD, defType);
 
-  return {
-    type: NodeType.DefinitionStatement,
-    defType,
-    id,
-    properties
-  };
+  return returnValue;
 }
 
 function parseDialogueTree(parsingContext: ParsingContext): DialogueTreeStatementNode {
@@ -255,7 +274,7 @@ function parseDialogueNode(parsingContext: ParsingContext): DialogueNodeStatemen
 
       const token = consume(tokens, TokenType.LITERAL);
 
-      if(typeof token.value !== "string") throw new Error("Expected a string for text value");
+      if (typeof token.value !== "string") throw new Error("Expected a string for text value");
 
       text = token.value;
     } else if (token.normalizedValue === 'CHOICE') {
@@ -293,7 +312,7 @@ function parseChoiceExpression(parsingContext: ParsingContext): ChoiceExpression
 
   const targetNodeId = consume(tokens, TokenType.WORD).normalizedValue;
 
-  if(typeof text !== "string") throw new Error("Expected a string for choice text");
+  if (typeof text !== "string") throw new Error("Expected a string for choice text");
 
   return { type: NodeType.ChoiceExpression, text, targetNodeId, condition };
 }
@@ -308,8 +327,8 @@ export function parseCallExpression(parsingContext: ParsingContext): CallExpress
   const args = [];
 
   while (tokens[0] && tokens[0].value !== ')') {
-    if(tokens[0].value === ',') consume(tokens, TokenType.PUNCTUATOR, ',');
-    
+    if (tokens[0].value === ',') consume(tokens, TokenType.PUNCTUATOR, ',');
+
     args.push(parseLogicalExpression(parsingContext));
   }
 
@@ -429,12 +448,11 @@ export function parseStatement(parsingContext: ParsingContext): StatementNode {
 
   switch (token.normalizedValue) {
     case 'VAR': return parseVarStatement(parsingContext);
-    case 'BLOCK': return parseBlock(parsingContext);
     case 'CONST': return parseConstStatement(parsingContext);
     case 'IF': return parseIfStatement(parsingContext);
     case 'RETURN': return parseReturnStatement(parsingContext);
     case 'ON': return parseOnStatement(parsingContext);
-    case 'START': return parseDefinitionStatement(parsingContext);
+    case 'START': return parseStartStatement(parsingContext);
     case 'DIALOGUE_TREE': return parseDialogueTree(parsingContext);
   }
 

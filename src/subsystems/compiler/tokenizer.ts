@@ -139,6 +139,9 @@ export const tokenize = (code: string) => {
 };
 
 export function consume(tokens: Token[], expectedType: TokenType, expectedValue?: string) {
+  console.log("Consuming: " + expectedType + " " + expectedValue)
+
+
   const token = tokens[0];
   const normalizedExpectedValue = expectedValue ? expectedValue.toUpperCase() : null;
 
@@ -148,6 +151,9 @@ export function consume(tokens: Token[], expectedType: TokenType, expectedValue?
 
   if (token && token.type === expectedType && (!normalizedExpectedValue || token.normalizedValue === normalizedExpectedValue)) {
     tokens.shift();
+
+    console.log("consumed");
+    
     return token;
   }
 
